@@ -7,3 +7,9 @@ dist
 backend/node_modules
 backend/dist
 backend/public
+.agents
+.claude
+.windsurf
+backend/.agents
+backend/.claude
+backend/.windsurf
