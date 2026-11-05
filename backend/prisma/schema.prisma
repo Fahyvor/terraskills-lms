@@ -1,0 +1,152 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String           @id @default(cuid())
+  email          String           @unique
+  password       String
+  name           String           @default("")
+  role           String           @default("student") // "student", "instructor", "admin"
+  whatsapp       String?
+  address        String?
+  avatar         String?
+  headline       String?
+  bio            String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  enrollments    Enrollment[]
+  lessonProgress LessonProgress[]
+  notes          Note[]
+  reviews        Review[]
+  courses        Course[]         @relation("InstructorCourses")
+}
+
+model Course {
+  id               String       @id @default(cuid())
+  title            String
+  slug             String       @unique
+  subtitle         String
+  description      String
+  category         String
+  level            String       @default("All Levels") // "Beginner", "Intermediate", "Advanced", "All Levels"
+  thumbnail        String
+  instructorId     String?
+  instructor       User?        @relation("InstructorCourses", fields: [instructorId], references: [id])
+  instructorName   String       @default("Terraskills Master Faculty")
+  instructorTitle  String?      @default("Senior Industry Lead")
+  instructorAvatar String?
+  duration         String       @default("6h 30m")
+  rating           Float        @default(4.9)
+  reviewsCount     Int          @default(48)
+  price            Float        @default(0)
+  badge            String?      @default("Featured")
+  featured         Boolean      @default(false)
+  published        Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  modules          Module[]
+  enrollments      Enrollment[]
+  reviews          Review[]
+}
+
+model Module {
+  id       String   @id @default(cuid())
+  courseId String
+  title    String
+  order    Int      @default(1)
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons  Lesson[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id              String           @id @default(cuid())
+  moduleId        String
+  title           String
+  order           Int              @default(1)
+  duration        String           @default("15m")
+  durationSeconds Int              @default(900)
+  videoType       String           @default("youtube") // "youtube" or "upload"
+  videoUrl        String
+  description     String?
+  summary         String?
+  resourcesJson   String? // JSON string
+  module          Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progresses      LessonProgress[]
+  notes           Note[]
+
+  @@index([moduleId])
+}
+
+model Enrollment {
+  id             String    @id @default(cuid())
+  userId         String
+  courseId       String
+  status         String    @default("pending") // "pending", "approved", "rejected"
+  approvedAt     DateTime?
+  approvedBy     String?
+  enrolledAt     DateTime  @default(now())
+  lastAccessedAt DateTime  @default(now())
+  completed      Boolean   @default(false)
+  completedAt    DateTime?
+  certificateId  String?
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course         Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([status])
+  @@index([certificateId])
+}
+
+model LessonProgress {
+  id                  String    @id @default(cuid())
+  userId              String
+  lessonId            String
+  completed           Boolean   @default(false)
+  completedAt         DateTime?
+  lastPositionSeconds Int       @default(0)
+  watchTimeSeconds    Int       @default(0)
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson              Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([lessonId])
+  @@index([completed])
+}
+
+model Note {
+  id               String   @id @default(cuid())
+  userId           String
+  lessonId         String
+  content          String
+  timestampSeconds Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson           Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([userId, lessonId])
+  @@index([lessonId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  rating    Int      @default(5)
+  comment   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([userId])
+}
