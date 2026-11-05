@@ -22,9 +22,24 @@ const PORT = config.port;
 const isProd = config.isProd;
 
 // Resolve static build directory flexibly whether started from root or backend/
-const rootPublic = path.resolve(process.cwd(), 'public');
-const backendPublic = path.resolve(process.cwd(), 'backend', 'public');
-const publicPath = fs.existsSync(backendPublic) ? backendPublic : rootPublic;
+function resolvePublicPath(): string {
+  const candidates = [
+    path.resolve(__dirname, '..', 'public'), // dist/../public or src/../public
+    path.resolve(process.cwd(), 'backend', 'public'), // launched from repo root
+    path.resolve(process.cwd(), 'public'), // launched from backend directory
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(path.join(candidate, 'index.html'))) {
+      return candidate;
+    }
+  }
+
+  // Fallback if index.html hasn't been built yet
+  return candidates[0];
+}
+
+const publicPath = resolvePublicPath();
 
 // 1. Trust proxy if behind a reverse proxy (e.g. nginx, cloudflare)
 app.set('trust proxy', 1);
